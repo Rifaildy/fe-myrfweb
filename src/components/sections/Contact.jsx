@@ -174,7 +174,7 @@ const Contact = () => {
                 <ContactInfo
                   icon="💼"
                   label="LinkedIn"
-                  value="Rifaildy Nurhuda"
+                  value="Rifaildy Nurhuda Assalam"
                   href={profile.linkedin_url}
                 />
               )}
