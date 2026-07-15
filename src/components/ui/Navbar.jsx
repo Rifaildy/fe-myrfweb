@@ -94,7 +94,7 @@ const Navbar = () => {
             letterSpacing: '-0.01em',
           }}>
             <span style={{ color: 'var(--blue-main)' }}>Rifaildy</span>
-            <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>.dev</span>
+            {/* <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>.dev</span> */}
           </span>
         </Link>
 
@@ -140,7 +140,7 @@ const Navbar = () => {
         )}
 
         {/* Right side */}
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifySelf: 'end' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifySelf: 'end', gridColumn: 3 }}>
 
           {/* Hamburger */}
           {!isAdmin && (
@@ -168,9 +168,9 @@ const Navbar = () => {
                   transition: 'all 0.3s ease',
                   transformOrigin: 'center',
                   transform: menuOpen
-                    ? i === 0 ? 'rotate(45deg) translate(5px, 5px)'
-                    : i === 1 ? 'opacity: 0; scaleX(0)'
-                    : 'rotate(-45deg) translate(5px, -5px)'
+                    ? i === 0 ? 'translateY(7px) rotate(45deg)'
+                    : i === 1 ? 'scale(0)'
+                    : 'translateY(-7px) rotate(-45deg)'
                     : 'none',
                   opacity: menuOpen && i === 1 ? 0 : 1,
                 }} />
@@ -197,11 +197,7 @@ const Navbar = () => {
           justifyContent: 'center',
           gap: '2rem',
         }}>
-          <button onClick={() => setMenuOpen(false)} style={{
-            position: 'absolute', top: '1.5rem', right: '2rem',
-            background: 'transparent', border: 'none', color: 'var(--text-secondary)',
-            fontSize: '1.5rem', cursor: 'pointer',
-          }}>✕</button>
+
           {NAV_LINKS.map(({ href, label }) => (
             <a
               key={href}
