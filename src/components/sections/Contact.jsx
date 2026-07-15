@@ -52,6 +52,22 @@ const Contact = () => {
     profileAPI.get().then(setProfile).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    const targets = document.querySelectorAll('#contact .reveal, #contact .reveal-left, #contact .reveal-right');
+    targets.forEach(el => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [profile]);
+
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
