@@ -65,6 +65,12 @@ export const projectsAPI = {
       headers: headers(true),
       body: JSON.stringify({ is_published }),
     }).then(handleRes),
+  reorder: (items) =>
+    fetch(`${API_BASE}/projects/reorder`, {
+      method: 'PUT',
+      headers: headers(true),
+      body: JSON.stringify({ items }),
+    }).then(handleRes),
   delete: (id) =>
     fetch(`${API_BASE}/projects/${id}`, {
       method: 'DELETE',
@@ -86,6 +92,12 @@ export const skillsAPI = {
       method: 'PUT',
       headers: headers(true),
       body: JSON.stringify(data),
+    }).then(handleRes),
+  reorder: (items) =>
+    fetch(`${API_BASE}/skills/reorder`, {
+      method: 'PUT',
+      headers: headers(true),
+      body: JSON.stringify({ items }),
     }).then(handleRes),
   delete: (id) =>
     fetch(`${API_BASE}/skills/${id}`, {

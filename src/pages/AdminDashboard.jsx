@@ -243,6 +243,9 @@ const ProjectsTab = () => {
   const [form, setForm] = useState({ title: '', slug: '', description: '', tech_stack_tags: '', repo_url: '', live_url: '', image_url: '', is_published: false });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [reordering, setReordering] = useState(false);
+  const dragItem = { current: null };
+  const dragOver = { current: null };
 
   const load = () => {
     setLoading(true);
@@ -302,12 +305,61 @@ const ProjectsTab = () => {
     } catch {}
   };
 
+  // ── Drag & Drop handlers ──────────────────────────────────────────────────
+  const handleDragStart = (e, idx) => {
+    dragItem.current = idx;
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnter = (e, idx) => {
+    dragOver.current = idx;
+    e.currentTarget.style.borderTop = '2px solid var(--blue-main)';
+  };
+
+  const handleDragLeave = (e) => {
+    e.currentTarget.style.borderTop = '';
+  };
+
+  const handleDrop = async (e, idx) => {
+    e.currentTarget.style.borderTop = '';
+    if (dragItem.current === null || dragItem.current === idx) return;
+
+    const reordered = [...projects];
+    const [moved] = reordered.splice(dragItem.current, 1);
+    reordered.splice(idx, 0, moved);
+
+    const withOrder = reordered.map((p, i) => ({ ...p, sort_order: i }));
+    setProjects(withOrder);
+    dragItem.current = null;
+    dragOver.current = null;
+
+    setReordering(true);
+    try {
+      await projectsAPI.reorder(withOrder.map((p, i) => ({ id: p.id, sort_order: i })));
+      setMsg('✅ Urutan tersimpan!');
+    } catch {
+      setMsg('❌ Gagal menyimpan urutan.');
+      load(); // revert
+    } finally {
+      setReordering(false);
+      setTimeout(() => setMsg(''), 2500);
+    }
+  };
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.style.opacity = '1';
+    // clear any leftover border
+    document.querySelectorAll('tr[draggable]').forEach(tr => { tr.style.borderTop = ''; });
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.25rem' }}>Projects Management</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Kelola semua proyek portofolio</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            Kelola proyek — seret <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--blue-light)' }}>⠿</span> untuk mengatur urutan
+          </p>
         </div>
         <button onClick={() => openForm()} className="btn-primary" data-hover>
           <span>+ New Project</span>
@@ -371,17 +423,30 @@ const ProjectsTab = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(59,130,246,0.15)' }}>
-                {['Title', 'Tech Stack', 'Status', 'Actions'].map(h => (
+                {['', 'Title', 'Tech Stack', 'Status', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {projects.map(p => (
-                <tr key={p.id} style={{ borderBottom: '1px solid rgba(59,130,246,0.07)', transition: 'background 0.15s' }}
+              {projects.map((p, idx) => (
+                <tr
+                  key={p.id}
+                  draggable
+                  onDragStart={(e) => { handleDragStart(e, idx); e.currentTarget.style.opacity = '0.5'; }}
+                  onDragEnter={(e) => handleDragEnter(e, idx)}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  onDragEnd={handleDragEnd}
+                  style={{ borderBottom: '1px solid rgba(59,130,246,0.07)', transition: 'background 0.15s, opacity 0.2s', cursor: 'grab' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.05)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
+                  {/* Drag handle */}
+                  <td style={{ padding: '1rem 0.5rem 1rem 1rem', color: 'var(--text-muted)', fontSize: '1.1rem', letterSpacing: '-1px', userSelect: 'none' }}>
+                    ⠿
+                  </td>
                   <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {p.title}
                     {p.image_url && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem', fontFamily: 'var(--font-mono)' }}>{p.slug}</div>}
@@ -419,6 +484,11 @@ const ProjectsTab = () => {
               ))}
             </tbody>
           </table>
+          {reordering && (
+            <div style={{ padding: '0.5rem 1rem', color: 'var(--cyan)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', marginTop: '0.5rem' }}>
+              ⏳ Menyimpan urutan...
+            </div>
+          )}
           {projects.length === 0 && <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No projects yet. Create your first one!</div>}
         </div>
       )}
@@ -432,8 +502,13 @@ const SkillsTab = () => {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: '', category: 'Frontend', icon_url: '' });
   const [msg, setMsg] = useState('');
+  const [reordering, setReordering] = useState(false);
 
   const CATS = ['Frontend', 'Backend', 'Database', 'Tools'];
+
+  // Per-category drag state
+  const dragItem = { current: null };   // { cat, idx }
+  const dragOver = { current: null };
 
   const load = () => { skillsAPI.getAll().then(setSkills).catch(() => {}).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
@@ -456,6 +531,81 @@ const SkillsTab = () => {
     try { await skillsAPI.delete(id); load(); } catch {}
   };
 
+  // ── Drag & Drop handlers ──────────────────────────────────────────────────
+  const handleSkillDragStart = (e, cat, idx) => {
+    dragItem.current = { cat, idx };
+    e.dataTransfer.effectAllowed = 'move';
+    e.currentTarget.style.opacity = '0.45';
+  };
+
+  const handleSkillDragEnter = (e, cat, idx) => {
+    if (!dragItem.current || dragItem.current.cat !== cat) return;
+    dragOver.current = { cat, idx };
+    e.currentTarget.style.outline = '2px solid var(--blue-main)';
+    e.currentTarget.style.outlineOffset = '2px';
+  };
+
+  const handleSkillDragLeave = (e) => {
+    e.currentTarget.style.outline = '';
+    e.currentTarget.style.outlineOffset = '';
+  };
+
+  const handleSkillDrop = async (e, cat, idx) => {
+    e.currentTarget.style.outline = '';
+    e.currentTarget.style.outlineOffset = '';
+
+    if (!dragItem.current || dragItem.current.cat !== cat) return;
+    if (dragItem.current.idx === idx) return;
+
+    // Reorder within the category
+    const grouped = skills.reduce((acc, s) => {
+      if (!acc[s.category]) acc[s.category] = [];
+      acc[s.category].push(s);
+      return acc;
+    }, {});
+
+    const catSkills = [...(grouped[cat] || [])];
+    const [moved] = catSkills.splice(dragItem.current.idx, 1);
+    catSkills.splice(idx, 0, moved);
+
+    // Rebuild full skills array preserving other categories
+    const newSkills = skills.map(s => {
+      if (s.category !== cat) return s;
+      const newIdx = catSkills.findIndex(cs => cs.id === s.id);
+      return newIdx >= 0 ? { ...s, sort_order: catSkills.findIndex(cs => cs.id === s.id) } : s;
+    });
+
+    // Apply the new ordering for this category
+    const reorderedCat = catSkills.map((s, i) => ({ ...s, sort_order: i }));
+    const updatedSkills = skills.map(s => {
+      if (s.category !== cat) return s;
+      return reorderedCat.find(r => r.id === s.id) || s;
+    });
+
+    setSkills(updatedSkills);
+    dragItem.current = null;
+
+    setReordering(true);
+    try {
+      await skillsAPI.reorder(reorderedCat.map((s, i) => ({ id: s.id, sort_order: i })));
+      setMsg('✅ Urutan tersimpan!');
+    } catch {
+      setMsg('❌ Gagal menyimpan urutan.');
+      load();
+    } finally {
+      setReordering(false);
+      setTimeout(() => setMsg(''), 2500);
+    }
+  };
+
+  const handleSkillDragEnd = (e) => {
+    e.currentTarget.style.opacity = '1';
+    document.querySelectorAll('[data-skill-chip]').forEach(el => {
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+    });
+  };
+
   const grouped = skills.reduce((acc, s) => {
     if (!acc[s.category]) acc[s.category] = [];
     acc[s.category].push(s);
@@ -465,7 +615,7 @@ const SkillsTab = () => {
   return (
     <div>
       <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1.5rem' }}>Skills Manager</h2>
-      
+
       {/* Add form */}
       <div style={{ background: 'rgba(13,26,51,0.6)', border: '1px solid rgba(59,130,246,0.12)', borderRadius: 'var(--radius-md)', padding: '1.5rem', marginBottom: '2rem' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-secondary)' }}>Add New Skill</h3>
@@ -491,28 +641,51 @@ const SkillsTab = () => {
 
       {/* Grid by category */}
       {loading ? <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>Loading...</div> : (
-        CATS.map(cat => grouped[cat] && (
-          <div key={cat} style={{ marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{cat}</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {grouped[cat].map(skill => (
-                <div key={skill.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.4rem 0.75rem',
-                  background: 'rgba(13,26,51,0.7)', border: '1px solid rgba(59,130,246,0.15)',
-                  borderRadius: 8, fontSize: '0.82rem', color: 'var(--text-secondary)',
-                }}>
-                  {skill.icon_url && <img src={skill.icon_url} alt={skill.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />}
-                  {skill.name}
-                  <button onClick={() => handleDelete(skill.id)} style={{
-                    background: 'transparent', border: 'none', color: '#f87171',
-                    cursor: 'pointer', fontSize: '0.85rem', padding: '0 0.2rem',
-                  }}>✕</button>
-                </div>
-              ))}
+        <div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: '1.25rem', fontFamily: 'var(--font-mono)' }}>
+            💡 Seret chip skill untuk mengubah urutan dalam kategori
+          </p>
+          {CATS.map(cat => grouped[cat] && (
+            <div key={cat} style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{cat}</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {grouped[cat].map((skill, idx) => (
+                  <div
+                    key={skill.id}
+                    data-skill-chip
+                    draggable
+                    onDragStart={(e) => handleSkillDragStart(e, cat, idx)}
+                    onDragEnter={(e) => handleSkillDragEnter(e, cat, idx)}
+                    onDragLeave={handleSkillDragLeave}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => handleSkillDrop(e, cat, idx)}
+                    onDragEnd={handleSkillDragEnd}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.4rem',
+                      padding: '0.4rem 0.75rem',
+                      background: 'rgba(13,26,51,0.7)', border: '1px solid rgba(59,130,246,0.15)',
+                      borderRadius: 8, fontSize: '0.82rem', color: 'var(--text-secondary)',
+                      cursor: 'grab', userSelect: 'none', transition: 'opacity 0.2s',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', letterSpacing: '-1px' }}>⠿</span>
+                    {skill.icon_url && <img src={skill.icon_url} alt={skill.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />}
+                    {skill.name}
+                    <button onClick={() => handleDelete(skill.id)} style={{
+                      background: 'transparent', border: 'none', color: '#f87171',
+                      cursor: 'pointer', fontSize: '0.85rem', padding: '0 0.1rem',
+                    }}>✕</button>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))
+          ))}
+          {reordering && (
+            <div style={{ color: 'var(--cyan)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', marginTop: '0.5rem' }}>
+              ⏳ Menyimpan urutan...
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import Anett from './pages/Anett';
+import Random from './pages/Random';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -63,6 +64,7 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/anett" element={<Anett />} />
+      <Route path="/random" element={<Random />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
