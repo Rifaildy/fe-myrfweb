@@ -38,7 +38,7 @@ const Random = () => {
           userSelect: 'none',
         }}
       >
-        ALIPP ANJ
+        HAI MONYETT
       </h1>
 
       <style>{`
