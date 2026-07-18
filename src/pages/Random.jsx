@@ -38,7 +38,7 @@ const Random = () => {
           userSelect: 'none',
         }}
       >
-        alip anj 🐒
+        ALIPP ANJ
       </h1>
 
       <style>{`
