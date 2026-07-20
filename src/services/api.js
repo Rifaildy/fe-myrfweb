@@ -76,6 +76,16 @@ export const projectsAPI = {
       method: 'DELETE',
       headers: headers(true),
     }).then(handleRes),
+  /** Upload a single image file → returns { url, fileName } */
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return fetch(`${API_BASE}/projects/upload-image`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: formData,
+    }).then(handleRes);
+  },
 };
 
 // ── Skills ────────────────────────────────────────────

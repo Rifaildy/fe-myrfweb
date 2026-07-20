@@ -235,12 +235,22 @@ const ProfileTab = () => {
 };
 
 // ─── Projects Tab ─────────────────────────────────────────────────────────────
+const EMPTY_FORM = {
+  title: '', slug: '', description: '', tech_stack_tags: '',
+  repo_url: '', live_url: '', image_url: '',
+  is_published: false,
+  detail_content: '',
+  // detail images: [{ url, caption, uploading }]
+};
+
 const ProjectsTab = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ title: '', slug: '', description: '', tech_stack_tags: '', repo_url: '', live_url: '', image_url: '', is_published: false });
+  const [form, setForm] = useState(EMPTY_FORM);
+  // detail images state: array of { url, caption, uploading }
+  const [detailImages, setDetailImages] = useState([]);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [reordering, setReordering] = useState(false);
@@ -260,22 +270,55 @@ const ProjectsTab = () => {
       setForm({
         ...project,
         tech_stack_tags: Array.isArray(project.tech_stack_tags) ? project.tech_stack_tags.join(', ') : project.tech_stack_tags || '',
+        detail_content: project.detail_content || '',
       });
+      // Reconstruct detailImages from parallel arrays
+      const imgs   = Array.isArray(project.detail_images)   ? project.detail_images   : [];
+      const caps   = Array.isArray(project.detail_captions) ? project.detail_captions : [];
+      setDetailImages(imgs.map((url, i) => ({ url: url || '', caption: caps[i] || '', uploading: false })));
     } else {
       setEditing(null);
-      setForm({ title: '', slug: '', description: '', tech_stack_tags: '', repo_url: '', live_url: '', image_url: '', is_published: false });
+      setForm(EMPTY_FORM);
+      setDetailImages([]);
     }
     setShowForm(true);
+  };
+
+  // ── Detail image helpers ───────────────────────────────────
+  const addImageRow = () => setDetailImages(prev => [...prev, { url: '', caption: '', uploading: false }]);
+
+  const removeImageRow = (i) => setDetailImages(prev => prev.filter((_, idx) => idx !== i));
+
+  const updateImageRow = (i, field, value) =>
+    setDetailImages(prev => prev.map((row, idx) => idx === i ? { ...row, [field]: value } : row));
+
+  const handleImageUpload = async (i, file) => {
+    if (!file) return;
+    updateImageRow(i, 'uploading', true);
+    try {
+      const res = await projectsAPI.uploadImage(file);
+      updateImageRow(i, 'url', res.url);
+    } catch (err) {
+      setMsg(`❌ Upload gagal: ${err.message}`);
+      setTimeout(() => setMsg(''), 3000);
+    } finally {
+      updateImageRow(i, 'uploading', false);
+    }
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
+      // Parallel arrays — filter out completely empty rows
+      const validImages = detailImages.filter(row => row.url.trim());
       const data = {
         ...form,
         tech_stack_tags: form.tech_stack_tags.split(',').map(s => s.trim()).filter(Boolean),
         slug: form.slug || form.title.toLowerCase().replace(/\s+/g, '-'),
+        detail_images:   validImages.map(r => r.url.trim()),
+        detail_captions: validImages.map(r => r.caption.trim() || null),
+        detail_content:  form.detail_content.trim() || null,
       };
       if (editing) await projectsAPI.update(editing, data);
       else await projectsAPI.create(data);
@@ -371,27 +414,29 @@ const ProjectsTab = () => {
       {/* Modal Form */}
       {showForm && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
-          zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem',
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+          zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
         }}>
           <div style={{
             background: 'var(--bg-secondary)', border: '1px solid rgba(59,130,246,0.2)',
-            borderRadius: 'var(--radius-xl)', padding: '2rem', width: '100%', maxWidth: 640,
-            maxHeight: '90vh', overflowY: 'auto',
+            borderRadius: 'var(--radius-xl)', padding: '2rem', width: '100%', maxWidth: 720,
+            maxHeight: '92vh', overflowY: 'auto',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>{editing ? 'Edit Project' : 'New Project'}</h3>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>{editing ? '✏️ Edit Project' : '➕ New Project'}</h3>
               <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
             </div>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+              {/* ── Basic Info ── */}
               {[
                 { key: 'title', label: 'Title', type: 'text', placeholder: 'Project Title' },
-                { key: 'slug', label: 'Slug', type: 'text', placeholder: 'project-slug (auto)' },
-                { key: 'description', label: 'Description', type: 'textarea', placeholder: 'Project description...' },
+                { key: 'slug', label: 'Slug', type: 'text', placeholder: 'project-slug (auto-generated)' },
+                { key: 'description', label: 'Short Description', type: 'textarea', placeholder: 'Deskripsi singkat proyek...' },
                 { key: 'tech_stack_tags', label: 'Tech Stack (comma separated)', type: 'text', placeholder: 'React.js, Node.js, PostgreSQL' },
                 { key: 'repo_url', label: 'Repository URL', type: 'url', placeholder: 'https://github.com/...' },
                 { key: 'live_url', label: 'Live Demo URL', type: 'url', placeholder: 'https://...' },
-                { key: 'image_url', label: 'Image URL', type: 'url', placeholder: 'https://... (thumbnail)' },
+                { key: 'image_url', label: 'Thumbnail Image URL', type: 'url', placeholder: 'https://... (gambar utama kartu)' },
               ].map(f => (
                 <div key={f.key}>
                   <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.3rem', fontFamily: 'var(--font-mono)' }}>{f.label.toUpperCase()}</label>
@@ -402,6 +447,125 @@ const ProjectsTab = () => {
                   )}
                 </div>
               ))}
+
+              {/* ── Separator ── */}
+              <div style={{ borderTop: '1px solid rgba(59,130,246,0.15)', margin: '0.5rem 0' }} />
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--blue-light)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                📋 Detail Proyek (opsional)
+              </div>
+
+              {/* ── Detail Content ── */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.3rem', fontFamily: 'var(--font-mono)' }}>DETAIL CONTENT (PENJELASAN UMUM)</label>
+                <textarea
+                  className="input-field"
+                  rows={5}
+                  placeholder={'Jelaskan proyek secara lengkap...\n\nFitur utama, tantangan, pendekatan teknis, hasil, dll.'}
+                  value={form.detail_content || ''}
+                  onChange={e => setForm(p => ({ ...p, detail_content: e.target.value }))}
+                />
+              </div>
+
+              {/* ── Detail Images ── */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>DETAIL IMAGES ({detailImages.length})</label>
+                  <button
+                    type="button"
+                    onClick={addImageRow}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.3rem',
+                      padding: '0.3rem 0.75rem', background: 'rgba(59,130,246,0.1)',
+                      border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6,
+                      color: 'var(--blue-light)', fontSize: '0.78rem', cursor: 'pointer',
+                    }}
+                  >+ Tambah Gambar</button>
+                </div>
+
+                {detailImages.length === 0 && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0.75rem 1rem', background: 'rgba(13,26,51,0.5)', borderRadius: 8, border: '1px dashed rgba(59,130,246,0.15)' }}>
+                    Belum ada gambar detail. Klik "+ Tambah Gambar" untuk menambahkan screenshot atau demo.
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {detailImages.map((row, i) => (
+                    <div key={i} style={{
+                      padding: '0.9rem', background: 'rgba(13,26,51,0.6)',
+                      border: '1px solid rgba(59,130,246,0.12)', borderRadius: 10,
+                      display: 'flex', flexDirection: 'column', gap: '0.5rem',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'rgba(59,130,246,0.7)', fontFamily: 'var(--font-mono)' }}>GAMBAR #{i + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeImageRow(i)}
+                          style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.9rem', padding: '0 0.2rem' }}
+                        >✕</button>
+                      </div>
+
+                      {/* URL + preview */}
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <div style={{ flex: 1 }}>
+                          <input
+                            type="url"
+                            className="input-field"
+                            placeholder="URL gambar atau upload di bawah"
+                            value={row.url}
+                            onChange={e => updateImageRow(i, 'url', e.target.value)}
+                            style={{ fontSize: '0.8rem' }}
+                          />
+                        </div>
+                        {/* Thumbnail preview */}
+                        {row.url && (
+                          <div style={{
+                            width: 44, height: 44, flexShrink: 0,
+                            borderRadius: 6, overflow: 'hidden',
+                            border: '1px solid rgba(59,130,246,0.2)',
+                          }}>
+                            <img src={row.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={e => { e.currentTarget.style.display = 'none'; }} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Upload button */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <label style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                          padding: '0.3rem 0.75rem',
+                          background: row.uploading ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.08)',
+                          border: `1px solid ${row.uploading ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.25)'}`,
+                          borderRadius: 6,
+                          color: row.uploading ? '#fbbf24' : '#34d399',
+                          fontSize: '0.75rem', cursor: row.uploading ? 'wait' : 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {row.uploading ? '⏳ Uploading...' : '📤 Upload File'}
+                          <input
+                            type="file" accept="image/*" style={{ display: 'none' }}
+                            disabled={row.uploading}
+                            onChange={e => handleImageUpload(i, e.target.files[0])}
+                          />
+                        </label>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>atau paste URL di atas</span>
+                      </div>
+
+                      {/* Caption */}
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="Caption gambar (opsional)"
+                        value={row.caption}
+                        onChange={e => updateImageRow(i, 'caption', e.target.value)}
+                        style={{ fontSize: '0.8rem', fontStyle: row.caption ? 'normal' : 'italic' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Published checkbox */}
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                 <input type="checkbox" checked={form.is_published} onChange={e => setForm(p => ({ ...p, is_published: e.target.checked }))} />
                 Published (visible on portfolio)
