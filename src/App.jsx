@@ -50,6 +50,13 @@ const PublicLayout = ({ children }) => (
   </>
 );
 
+const DetailLayout = ({ children }) => (
+  <>
+    <ParticlesBg />
+    {children}
+  </>
+);
+
 function AppRoutes() {
   return (
     <Routes>
@@ -59,9 +66,9 @@ function AppRoutes() {
         </PublicLayout>
       } />
       <Route path="/project/:slug" element={
-        <PublicLayout>
+        <DetailLayout>
           <ProjectDetail />
-        </PublicLayout>
+        </DetailLayout>
       } />
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin-dashboard" element={
