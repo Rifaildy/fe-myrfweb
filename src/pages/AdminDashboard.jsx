@@ -254,6 +254,7 @@ const ProjectsTab = () => {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [reordering, setReordering] = useState(false);
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
   const dragItem = { current: null };
   const dragOver = { current: null };
 
@@ -303,6 +304,22 @@ const ProjectsTab = () => {
       setTimeout(() => setMsg(''), 3000);
     } finally {
       updateImageRow(i, 'uploading', false);
+    }
+  };
+
+  const handleThumbnailUpload = async (file) => {
+    if (!file) return;
+    setThumbnailUploading(true);
+    try {
+      const res = await projectsAPI.uploadThumbnail(file);
+      setForm(p => ({ ...p, image_url: res.url }));
+      setMsg('✅ Thumbnail uploaded!');
+      setTimeout(() => setMsg(''), 2500);
+    } catch (err) {
+      setMsg(`❌ Upload thumbnail gagal: ${err.message}`);
+      setTimeout(() => setMsg(''), 3000);
+    } finally {
+      setThumbnailUploading(false);
     }
   };
 
@@ -436,7 +453,6 @@ const ProjectsTab = () => {
                 { key: 'tech_stack_tags', label: 'Tech Stack (comma separated)', type: 'text', placeholder: 'React.js, Node.js, PostgreSQL' },
                 { key: 'repo_url', label: 'Repository URL', type: 'url', placeholder: 'https://github.com/...' },
                 { key: 'live_url', label: 'Live Demo URL', type: 'url', placeholder: 'https://...' },
-                { key: 'image_url', label: 'Thumbnail Image URL', type: 'url', placeholder: 'https://... (gambar utama kartu)' },
               ].map(f => (
                 <div key={f.key}>
                   <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.3rem', fontFamily: 'var(--font-mono)' }}>{f.label.toUpperCase()}</label>
@@ -447,6 +463,54 @@ const ProjectsTab = () => {
                   )}
                 </div>
               ))}
+
+              {/* ── Thumbnail Image Upload ── */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontFamily: 'var(--font-mono)' }}>THUMBNAIL IMAGE</label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <input
+                      type="url"
+                      className="input-field"
+                      placeholder="https://... (paste URL atau upload file)"
+                      value={form.image_url || ''}
+                      onChange={e => setForm(p => ({ ...p, image_url: e.target.value }))}
+                    />
+                    <label style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                      padding: '0.3rem 0.85rem', cursor: thumbnailUploading ? 'wait' : 'pointer',
+                      background: thumbnailUploading ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.08)',
+                      border: `1px solid ${thumbnailUploading ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.25)'}`,
+                      borderRadius: 6,
+                      color: thumbnailUploading ? '#fbbf24' : '#34d399',
+                      fontSize: '0.75rem', width: 'fit-content',
+                    }}>
+                      {thumbnailUploading ? '⏳ Uploading...' : '📤 Upload Thumbnail'}
+                      <input
+                        type="file" accept="image/*" style={{ display: 'none' }}
+                        disabled={thumbnailUploading}
+                        onChange={e => handleThumbnailUpload(e.target.files[0])}
+                      />
+                    </label>
+                  </div>
+                  {/* Thumbnail preview */}
+                  {form.image_url && (
+                    <div style={{
+                      width: 80, height: 56, flexShrink: 0,
+                      borderRadius: 8, overflow: 'hidden',
+                      border: '1px solid rgba(59,130,246,0.25)',
+                      background: 'rgba(13,26,51,0.5)',
+                    }}>
+                      <img
+                        src={form.image_url}
+                        alt="thumbnail preview"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        onError={e => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* ── Separator ── */}
               <div style={{ borderTop: '1px solid rgba(59,130,246,0.15)', margin: '0.5rem 0' }} />

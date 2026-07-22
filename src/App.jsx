@@ -8,6 +8,7 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import Anett from './pages/Anett';
 import X from './pages/x';
+import ProjectDetail from './pages/ProjectDetail';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -55,6 +56,11 @@ function AppRoutes() {
       <Route path="/" element={
         <PublicLayout>
           <Home />
+        </PublicLayout>
+      } />
+      <Route path="/project/:slug" element={
+        <PublicLayout>
+          <ProjectDetail />
         </PublicLayout>
       } />
       <Route path="/admin-login" element={<AdminLogin />} />
