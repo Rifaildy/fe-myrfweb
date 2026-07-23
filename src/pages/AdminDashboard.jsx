@@ -290,6 +290,16 @@ const ProjectsTab = () => {
 
   const removeImageRow = (i) => setDetailImages(prev => prev.filter((_, idx) => idx !== i));
 
+  const moveImageRow = (i, direction) => {
+    setDetailImages(prev => {
+      const next = [...prev];
+      const target = i + direction;
+      if (target < 0 || target >= next.length) return next;
+      [next[i], next[target]] = [next[target], next[i]];
+      return next;
+    });
+  };
+
   const updateImageRow = (i, field, value) =>
     setDetailImages(prev => prev.map((row, idx) => idx === i ? { ...row, [field]: value } : row));
 
@@ -561,11 +571,60 @@ const ProjectsTab = () => {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.72rem', color: 'rgba(59,130,246,0.7)', fontFamily: 'var(--font-mono)' }}>GAMBAR #{i + 1}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeImageRow(i)}
-                          style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.9rem', padding: '0 0.2rem' }}
-                        >✕</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          {/* Move Up */}
+                          <button
+                            type="button"
+                            onClick={() => moveImageRow(i, -1)}
+                            disabled={i === 0}
+                            title="Pindah ke atas"
+                            style={{
+                              background: 'none', border: '1px solid rgba(59,130,246,0.25)',
+                              borderRadius: 5, color: i === 0 ? 'rgba(59,130,246,0.25)' : 'var(--blue-light)',
+                              cursor: i === 0 ? 'not-allowed' : 'pointer',
+                              fontSize: '0.8rem', lineHeight: 1,
+                              width: 26, height: 26,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => { if (i !== 0) e.currentTarget.style.background = 'rgba(59,130,246,0.12)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+                          >↑</button>
+                          {/* Move Down */}
+                          <button
+                            type="button"
+                            onClick={() => moveImageRow(i, 1)}
+                            disabled={i === detailImages.length - 1}
+                            title="Pindah ke bawah"
+                            style={{
+                              background: 'none', border: '1px solid rgba(59,130,246,0.25)',
+                              borderRadius: 5, color: i === detailImages.length - 1 ? 'rgba(59,130,246,0.25)' : 'var(--blue-light)',
+                              cursor: i === detailImages.length - 1 ? 'not-allowed' : 'pointer',
+                              fontSize: '0.8rem', lineHeight: 1,
+                              width: 26, height: 26,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => { if (i !== detailImages.length - 1) e.currentTarget.style.background = 'rgba(59,130,246,0.12)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+                          >↓</button>
+                          {/* Remove */}
+                          <button
+                            type="button"
+                            onClick={() => removeImageRow(i)}
+                            title="Hapus gambar"
+                            style={{
+                              background: 'none', border: '1px solid rgba(239,68,68,0.25)',
+                              borderRadius: 5, color: '#f87171',
+                              cursor: 'pointer', fontSize: '0.8rem',
+                              width: 26, height: 26,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+                          >✕</button>
+                        </div>
                       </div>
 
                       {/* URL + preview */}
