@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { projectsAPI, skillsAPI, messagesAPI, profileAPI } from '../services/api';
+import { projectsAPI, skillsAPI, messagesAPI, profileAPI, skillCategoriesAPI } from '../services/api';
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
@@ -785,49 +785,71 @@ const ProjectsTab = () => {
 
 // ─── Skills Tab ───────────────────────────────────────────────────────────────
 const SkillsTab = () => {
-  const [skills, setSkills] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: '', category: 'Frontend', icon_url: '' });
-  const [msg, setMsg] = useState('');
+  const [skills, setSkills]         = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [form, setForm]             = useState({ name: '', category_id: '', icon_url: '' });
+  const [msg, setMsg]               = useState('');
   const [reordering, setReordering] = useState(false);
 
-  const CATS = ['Frontend', 'Backend', 'Database', 'Tools'];
+  // Category management state
+  const [catPanelOpen, setCatPanelOpen]   = useState(false);
+  const [newCatName, setNewCatName]       = useState('');
+  const [catMsg, setCatMsg]               = useState('');
+  const [catSaving, setCatSaving]         = useState(false);
+  const [catReordering, setCatReordering] = useState(false);
 
-  // Per-category drag state
-  const dragItem = { current: null };   // { cat, idx }
-  const dragOver = { current: null };
+  // Drag state for skills (per-category)
+  const skillDragItem = { current: null };  // { cat, idx }
+  // Drag state for categories
+  const catDragItem = { current: null };    // index in categories array
 
-  const load = () => { skillsAPI.getAll().then(setSkills).catch(() => {}).finally(() => setLoading(false)); };
-  useEffect(() => { load(); }, []);
+  // ── Loaders ────────────────────────────────────────────────────────────────
+  const loadSkills = () =>
+    skillsAPI.getAll().then(setSkills).catch(() => {});
 
-  const handleAdd = async (e) => {
+  const loadCategories = () =>
+    skillCategoriesAPI.getAll().then(cats => {
+      setCategories(cats);
+      // Set default category_id for "add skill" form
+      setForm(prev => ({ ...prev, category_id: prev.category_id || (cats[0]?.id ?? '') }));
+    }).catch(() => {});
+
+  const loadAll = () => {
+    setLoading(true);
+    Promise.all([loadSkills(), loadCategories()]).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadAll(); }, []);
+
+  // ── Skill CRUD ─────────────────────────────────────────────────────────────
+  const handleAddSkill = async (e) => {
     e.preventDefault();
     try {
-      await skillsAPI.add(form);
+      await skillsAPI.add({ ...form, category_id: Number(form.category_id) });
       setMsg('✅ Skill added!');
-      setForm({ name: '', category: 'Frontend', icon_url: '' });
-      load();
+      setForm(prev => ({ ...prev, name: '', icon_url: '' }));
+      loadSkills();
     } catch (err) {
       setMsg(`❌ ${err.message}`);
     }
     setTimeout(() => setMsg(''), 3000);
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteSkill = async (id) => {
     if (!window.confirm('Delete this skill?')) return;
-    try { await skillsAPI.delete(id); load(); } catch {}
+    try { await skillsAPI.delete(id); loadSkills(); } catch {}
   };
 
-  // ── Drag & Drop handlers ──────────────────────────────────────────────────
+  // ── Skill drag & drop ──────────────────────────────────────────────────────
   const handleSkillDragStart = (e, cat, idx) => {
-    dragItem.current = { cat, idx };
+    skillDragItem.current = { cat, idx };
     e.dataTransfer.effectAllowed = 'move';
     e.currentTarget.style.opacity = '0.45';
   };
 
   const handleSkillDragEnter = (e, cat, idx) => {
-    if (!dragItem.current || dragItem.current.cat !== cat) return;
-    dragOver.current = { cat, idx };
+    if (!skillDragItem.current || skillDragItem.current.cat !== cat) return;
     e.currentTarget.style.outline = '2px solid var(--blue-main)';
     e.currentTarget.style.outlineOffset = '2px';
   };
@@ -840,45 +862,36 @@ const SkillsTab = () => {
   const handleSkillDrop = async (e, cat, idx) => {
     e.currentTarget.style.outline = '';
     e.currentTarget.style.outlineOffset = '';
+    if (!skillDragItem.current || skillDragItem.current.cat !== cat) return;
+    if (skillDragItem.current.idx === idx) return;
 
-    if (!dragItem.current || dragItem.current.cat !== cat) return;
-    if (dragItem.current.idx === idx) return;
-
-    // Reorder within the category
     const grouped = skills.reduce((acc, s) => {
-      if (!acc[s.category]) acc[s.category] = [];
-      acc[s.category].push(s);
+      const key = s.category_id ?? 'uncategorized';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(s);
       return acc;
     }, {});
 
     const catSkills = [...(grouped[cat] || [])];
-    const [moved] = catSkills.splice(dragItem.current.idx, 1);
+    const [moved] = catSkills.splice(skillDragItem.current.idx, 1);
     catSkills.splice(idx, 0, moved);
 
-    // Rebuild full skills array preserving other categories
-    const newSkills = skills.map(s => {
-      if (s.category !== cat) return s;
-      const newIdx = catSkills.findIndex(cs => cs.id === s.id);
-      return newIdx >= 0 ? { ...s, sort_order: catSkills.findIndex(cs => cs.id === s.id) } : s;
-    });
-
-    // Apply the new ordering for this category
     const reorderedCat = catSkills.map((s, i) => ({ ...s, sort_order: i }));
     const updatedSkills = skills.map(s => {
-      if (s.category !== cat) return s;
+      if (s.category_id !== cat) return s;
       return reorderedCat.find(r => r.id === s.id) || s;
     });
 
     setSkills(updatedSkills);
-    dragItem.current = null;
+    skillDragItem.current = null;
 
     setReordering(true);
     try {
       await skillsAPI.reorder(reorderedCat.map((s, i) => ({ id: s.id, sort_order: i })));
-      setMsg('✅ Urutan tersimpan!');
+      setMsg('✅ Urutan skill tersimpan!');
     } catch {
       setMsg('❌ Gagal menyimpan urutan.');
-      load();
+      loadSkills();
     } finally {
       setReordering(false);
       setTimeout(() => setMsg(''), 2500);
@@ -893,83 +906,443 @@ const SkillsTab = () => {
     });
   };
 
+  // ── Category CRUD ──────────────────────────────────────────────────────────
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    setCatSaving(true);
+    try {
+      await skillCategoriesAPI.add(newCatName.trim());
+      setCatMsg('✅ Kategori ditambahkan!');
+      setNewCatName('');
+      loadCategories();
+    } catch (err) {
+      setCatMsg(`❌ ${err.message}`);
+    } finally {
+      setCatSaving(false);
+      setTimeout(() => setCatMsg(''), 3000);
+    }
+  };
+
+  const handleDeleteCategory = async (cat) => {
+    const skillCount = (grouped[cat.id] || []).length;
+    const warn = skillCount > 0
+      ? `Kategori "${cat.name}" masih memiliki ${skillCount} skill. Hapus atau pindahkan skill tersebut dulu.\n\nTetap hapus kategori?`
+      : `Hapus kategori "${cat.name}"?`;
+    if (!window.confirm(warn)) return;
+    try {
+      await skillCategoriesAPI.delete(cat.id);
+      setCatMsg(`✅ Kategori "${cat.name}" dihapus.`);
+      loadCategories();
+    } catch (err) {
+      setCatMsg(`❌ ${err.message}`);
+    }
+    setTimeout(() => setCatMsg(''), 4000);
+  };
+
+  // ── Category reorder via buttons ───────────────────────────────────────────
+  const moveCategoryBtn = async (idx, direction) => {
+    const next = [...categories];
+    const target = idx + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    const withOrder = next.map((c, i) => ({ ...c, sort_order: i }));
+    setCategories(withOrder);
+    setCatReordering(true);
+    try {
+      await skillCategoriesAPI.reorder(withOrder.map((c, i) => ({ id: c.id, sort_order: i })));
+    } catch {
+      setCatMsg('❌ Gagal menyimpan urutan kategori.');
+      loadCategories();
+    } finally {
+      setCatReordering(false);
+    }
+  };
+
+  // ── Category drag & drop ───────────────────────────────────────────────────
+  const handleCatDragStart = (e, idx) => {
+    catDragItem.current = idx;
+    e.dataTransfer.effectAllowed = 'move';
+    e.currentTarget.style.opacity = '0.45';
+  };
+
+  const handleCatDragEnter = (e) => {
+    e.currentTarget.style.background = 'rgba(59,130,246,0.12)';
+    e.currentTarget.style.outline = '1px solid rgba(59,130,246,0.4)';
+  };
+
+  const handleCatDragLeave = (e) => {
+    e.currentTarget.style.background = 'rgba(13,26,51,0.5)';
+    e.currentTarget.style.outline = '';
+  };
+
+  const handleCatDrop = async (e, idx) => {
+    e.currentTarget.style.background = 'rgba(13,26,51,0.5)';
+    e.currentTarget.style.outline = '';
+    if (catDragItem.current === null || catDragItem.current === idx) return;
+
+    const next = [...categories];
+    const [moved] = next.splice(catDragItem.current, 1);
+    next.splice(idx, 0, moved);
+    catDragItem.current = null;
+
+    const withOrder = next.map((c, i) => ({ ...c, sort_order: i }));
+    setCategories(withOrder);
+    setCatReordering(true);
+    try {
+      await skillCategoriesAPI.reorder(withOrder.map((c, i) => ({ id: c.id, sort_order: i })));
+      setCatMsg('✅ Urutan kategori tersimpan!');
+    } catch {
+      setCatMsg('❌ Gagal menyimpan urutan kategori.');
+      loadCategories();
+    } finally {
+      setCatReordering(false);
+      setTimeout(() => setCatMsg(''), 2500);
+    }
+  };
+
+  const handleCatDragEnd = (e) => {
+    e.currentTarget.style.opacity = '1';
+    catDragItem.current = null;
+  };
+
+  // ── Grouped skills (keyed by category_id) ────────────────────────────────
   const grouped = skills.reduce((acc, s) => {
-    if (!acc[s.category]) acc[s.category] = [];
-    acc[s.category].push(s);
+    const key = s.category_id ?? 'uncategorized';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
     return acc;
   }, {});
 
+  const catIds = categories.map(c => c.id);
+  const catNames = categories.map(c => c.name);
+
   return (
     <div>
-      <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1.5rem' }}>Skills Manager</h2>
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.25rem' }}>Skills Manager</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            Kelola skill dan jenis kategori — seret <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--blue-light)' }}>⠿</span> untuk mengatur urutan
+          </p>
+        </div>
+        <button
+          onClick={() => setCatPanelOpen(o => !o)}
+          data-hover
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            padding: '0.5rem 1rem',
+            background: catPanelOpen ? 'rgba(167,139,250,0.15)' : 'rgba(167,139,250,0.08)',
+            border: `1px solid ${catPanelOpen ? 'rgba(167,139,250,0.4)' : 'rgba(167,139,250,0.2)'}`,
+            borderRadius: 8, color: '#a78bfa', fontSize: '0.82rem',
+            cursor: 'pointer', transition: 'all 0.2s',
+          }}
+        >
+          🗂 Kelola Kategori {catPanelOpen ? '▲' : '▼'}
+        </button>
+      </div>
 
-      {/* Add form */}
+      {/* ── Category Management Panel ── */}
+      {catPanelOpen && (
+        <div style={{
+          background: 'rgba(13,26,51,0.7)',
+          border: '1px solid rgba(167,139,250,0.2)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.5rem',
+          marginBottom: '1.5rem',
+        }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#a78bfa', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            🗂 Manajemen Jenis Skill
+          </h3>
+
+          {catMsg && (
+            <div style={{
+              marginBottom: '1rem', padding: '0.55rem 1rem',
+              background: catMsg.startsWith('✅') ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+              border: `1px solid ${catMsg.startsWith('✅') ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+              borderRadius: 8, color: catMsg.startsWith('✅') ? '#34d399' : '#f87171', fontSize: '0.82rem',
+            }}>{catMsg}</div>
+          )}
+
+          {/* Add new category */}
+          <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.25rem', alignItems: 'center' }}>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Nama kategori baru (e.g. DevOps)"
+              value={newCatName}
+              onChange={e => setNewCatName(e.target.value)}
+              style={{ flex: 1, fontSize: '0.85rem' }}
+              required
+            />
+            <button
+              type="submit"
+              disabled={catSaving}
+              style={{
+                padding: '0.5rem 1.1rem',
+                background: 'rgba(167,139,250,0.15)',
+                border: '1px solid rgba(167,139,250,0.35)',
+                borderRadius: 7, color: '#a78bfa',
+                fontSize: '0.82rem', cursor: 'pointer',
+                whiteSpace: 'nowrap', transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(167,139,250,0.25)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(167,139,250,0.15)'}
+            >
+              {catSaving ? '⏳' : '+ Tambah'}
+            </button>
+          </form>
+
+          {/* Category list */}
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginBottom: '0.6rem', letterSpacing: '0.06em' }}>
+            DAFTAR KATEGORI — seret ⠿ atau klik ↑↓ untuk mengatur urutan
+          </div>
+
+          {catReordering && (
+            <div style={{ color: 'var(--cyan)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', marginBottom: '0.5rem' }}>
+              ⏳ Menyimpan urutan...
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            {categories.map((cat, idx) => {
+              const skillCount = (grouped[cat.id] || []).length;
+              return (
+                <div
+                  key={cat.id}
+                  draggable
+                  onDragStart={(e) => handleCatDragStart(e, idx)}
+                  onDragEnter={handleCatDragEnter}
+                  onDragLeave={handleCatDragLeave}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleCatDrop(e, idx)}
+                  onDragEnd={handleCatDragEnd}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.6rem',
+                    padding: '0.6rem 0.9rem',
+                    background: 'rgba(13,26,51,0.5)',
+                    border: '1px solid rgba(167,139,250,0.12)',
+                    borderRadius: 8, cursor: 'grab',
+                    transition: 'background 0.15s, opacity 0.2s',
+                  }}
+                >
+                  {/* Drag handle */}
+                  <span style={{ color: 'rgba(167,139,250,0.5)', fontSize: '1rem', letterSpacing: '-1px', userSelect: 'none' }}>⠿</span>
+
+                  {/* Order badge */}
+                  <span style={{
+                    minWidth: 22, height: 22,
+                    background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)',
+                    borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.7rem', color: '#a78bfa', fontFamily: 'var(--font-mono)', fontWeight: 700,
+                  }}>{idx + 1}</span>
+
+                  {/* Name */}
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                    {cat.name}
+                  </span>
+
+                  {/* Skill count badge */}
+                  <span style={{
+                    padding: '0.15rem 0.55rem',
+                    background: skillCount > 0 ? 'rgba(59,130,246,0.1)' : 'rgba(100,116,139,0.1)',
+                    border: `1px solid ${skillCount > 0 ? 'rgba(59,130,246,0.2)' : 'rgba(100,116,139,0.2)'}`,
+                    borderRadius: 100, fontSize: '0.7rem',
+                    color: skillCount > 0 ? 'var(--blue-light)' : 'var(--text-muted)',
+                    fontFamily: 'var(--font-mono)',
+                  }}>
+                    {skillCount} skill
+                  </span>
+
+                  {/* Move up */}
+                  <button
+                    onClick={() => moveCategoryBtn(idx, -1)}
+                    disabled={idx === 0}
+                    title="Pindah ke atas"
+                    style={{
+                      background: 'none',
+                      border: '1px solid rgba(167,139,250,0.2)',
+                      borderRadius: 5, color: idx === 0 ? 'rgba(167,139,250,0.2)' : 'rgba(167,139,250,0.7)',
+                      cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                      width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.8rem', transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => { if (idx !== 0) e.currentTarget.style.background = 'rgba(167,139,250,0.12)'; }}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >↑</button>
+
+                  {/* Move down */}
+                  <button
+                    onClick={() => moveCategoryBtn(idx, 1)}
+                    disabled={idx === categories.length - 1}
+                    title="Pindah ke bawah"
+                    style={{
+                      background: 'none',
+                      border: '1px solid rgba(167,139,250,0.2)',
+                      borderRadius: 5, color: idx === categories.length - 1 ? 'rgba(167,139,250,0.2)' : 'rgba(167,139,250,0.7)',
+                      cursor: idx === categories.length - 1 ? 'not-allowed' : 'pointer',
+                      width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.8rem', transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => { if (idx !== categories.length - 1) e.currentTarget.style.background = 'rgba(167,139,250,0.12)'; }}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >↓</button>
+
+                  {/* Delete */}
+                  <button
+                    onClick={() => handleDeleteCategory(cat)}
+                    title={`Hapus kategori ${cat.name}`}
+                    style={{
+                      background: 'none',
+                      border: '1px solid rgba(239,68,68,0.2)',
+                      borderRadius: 5, color: '#f87171',
+                      cursor: 'pointer',
+                      width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.8rem', transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >✕</button>
+                </div>
+              );
+            })}
+
+            {categories.length === 0 && (
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0.75rem 1rem', background: 'rgba(13,26,51,0.5)', borderRadius: 8, border: '1px dashed rgba(167,139,250,0.15)', textAlign: 'center' }}>
+                Belum ada kategori. Tambahkan kategori di atas.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Skill Form ── */}
       <div style={{ background: 'rgba(13,26,51,0.6)', border: '1px solid rgba(59,130,246,0.12)', borderRadius: 'var(--radius-md)', padding: '1.5rem', marginBottom: '2rem' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-secondary)' }}>Add New Skill</h3>
         {msg && <div style={{ marginBottom: '1rem', padding: '0.6rem 1rem', background: msg.startsWith('✅') ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', borderRadius: 8, color: msg.startsWith('✅') ? '#34d399' : '#f87171', fontSize: '0.875rem' }}>{msg}</div>}
-        <form onSubmit={handleAdd} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <form onSubmit={handleAddSkill} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 150px' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem', fontFamily: 'var(--font-mono)' }}>NAME</label>
             <input type="text" className="input-field" placeholder="e.g. Vue.js" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
           </div>
-          <div style={{ flex: '0 0 140px' }}>
+          <div style={{ flex: '0 0 160px' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem', fontFamily: 'var(--font-mono)' }}>CATEGORY</label>
-            <select className="input-field" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
-              {CATS.map(c => <option key={c} value={c}>{c}</option>)}
+            <select
+              className="input-field"
+              value={form.category_id}
+              onChange={e => setForm(p => ({ ...p, category_id: e.target.value }))}
+              required
+            >
+              {categories.length === 0 && <option value="">— Belum ada kategori —</option>}
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div style={{ flex: '2 1 240px' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem', fontFamily: 'var(--font-mono)' }}>ICON URL</label>
             <input type="url" className="input-field" placeholder="https://cdn.../icon.svg" value={form.icon_url} onChange={e => setForm(p => ({ ...p, icon_url: e.target.value }))} />
           </div>
-          <button type="submit" className="btn-primary" data-hover><span>+ Add</span></button>
+          <button type="submit" className="btn-primary" data-hover disabled={categories.length === 0}>
+            <span>+ Add</span>
+          </button>
         </form>
       </div>
 
-      {/* Grid by category */}
-      {loading ? <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>Loading...</div> : (
+      {/* ── Skills by Category ── */}
+      {loading ? (
+        <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>Loading...</div>
+      ) : (
         <div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: '1.25rem', fontFamily: 'var(--font-mono)' }}>
             💡 Seret chip skill untuk mengubah urutan dalam kategori
           </p>
-          {CATS.map(cat => grouped[cat] && (
-            <div key={cat} style={{ marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{cat}</h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {grouped[cat].map((skill, idx) => (
-                  <div
-                    key={skill.id}
-                    data-skill-chip
-                    draggable
-                    onDragStart={(e) => handleSkillDragStart(e, cat, idx)}
-                    onDragEnter={(e) => handleSkillDragEnter(e, cat, idx)}
-                    onDragLeave={handleSkillDragLeave}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => handleSkillDrop(e, cat, idx)}
-                    onDragEnd={handleSkillDragEnd}
-                    style={{
+
+          {categories.map(cat => {
+            const catSkills = grouped[cat.id] || [];
+            if (catSkills.length === 0) return null;
+            return (
+              <div key={cat.id} style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{cat.name}</h3>
+                  <span style={{
+                    padding: '0.1rem 0.45rem',
+                    background: 'rgba(59,130,246,0.08)',
+                    border: '1px solid rgba(59,130,246,0.15)',
+                    borderRadius: 100, fontSize: '0.65rem',
+                    color: 'var(--blue-light)', fontFamily: 'var(--font-mono)',
+                  }}>{catSkills.length}</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {catSkills.map((skill, idx) => (
+                    <div
+                      key={skill.id}
+                      data-skill-chip
+                      draggable
+                      onDragStart={(e) => handleSkillDragStart(e, cat.id, idx)}
+                      onDragEnter={(e) => handleSkillDragEnter(e, cat.id, idx)}
+                      onDragLeave={handleSkillDragLeave}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => handleSkillDrop(e, cat.id, idx)}
+                      onDragEnd={handleSkillDragEnd}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        padding: '0.4rem 0.75rem',
+                        background: 'rgba(13,26,51,0.7)', border: '1px solid rgba(59,130,246,0.15)',
+                        borderRadius: 8, fontSize: '0.82rem', color: 'var(--text-secondary)',
+                        cursor: 'grab', userSelect: 'none', transition: 'opacity 0.2s',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', letterSpacing: '-1px' }}>⠿</span>
+                      {skill.icon_url && <img src={skill.icon_url} alt={skill.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />}
+                      {skill.name}
+                      <button onClick={() => handleDeleteSkill(skill.id)} style={{
+                        background: 'transparent', border: 'none', color: '#f87171',
+                        cursor: 'pointer', fontSize: '0.85rem', padding: '0 0.1rem',
+                      }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Uncategorized skills (safety net) */}
+          {(() => {
+            const uncatSkills = skills.filter(s => !catIds.includes(s.category_id));
+            if (uncatSkills.length === 0) return null;
+            return (
+              <div style={{ marginBottom: '2rem', opacity: 0.7 }}>
+                <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f59e0b', marginBottom: '0.75rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  ⚠ Tidak Berkategori
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {uncatSkills.map(skill => (
+                    <div key={skill.id} style={{
                       display: 'flex', alignItems: 'center', gap: '0.4rem',
                       padding: '0.4rem 0.75rem',
-                      background: 'rgba(13,26,51,0.7)', border: '1px solid rgba(59,130,246,0.15)',
-                      borderRadius: 8, fontSize: '0.82rem', color: 'var(--text-secondary)',
-                      cursor: 'grab', userSelect: 'none', transition: 'opacity 0.2s',
-                    }}
-                  >
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', letterSpacing: '-1px' }}>⠿</span>
-                    {skill.icon_url && <img src={skill.icon_url} alt={skill.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />}
-                    {skill.name}
-                    <button onClick={() => handleDelete(skill.id)} style={{
-                      background: 'transparent', border: 'none', color: '#f87171',
-                      cursor: 'pointer', fontSize: '0.85rem', padding: '0 0.1rem',
-                    }}>✕</button>
-                  </div>
-                ))}
+                      background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)',
+                      borderRadius: 8, fontSize: '0.82rem', color: '#fbbf24',
+                    }}>
+                      {skill.icon_url && <img src={skill.icon_url} alt={skill.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />}
+                      {skill.name}
+                      <span style={{ fontSize: '0.68rem', color: 'rgba(245,158,11,0.6)', fontFamily: 'var(--font-mono)' }}>({skill.category})</span>
+                      <button onClick={() => handleDeleteSkill(skill.id)} style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.85rem', padding: '0 0.1rem' }}>✕</button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })()}
+
           {reordering && (
             <div style={{ color: 'var(--cyan)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', marginTop: '0.5rem' }}>
               ⏳ Menyimpan urutan...
+            </div>
+          )}
+
+          {categories.length > 0 && skills.length === 0 && (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+              Belum ada skill. Tambahkan skill di form di atas.
             </div>
           )}
         </div>

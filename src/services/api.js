@@ -126,6 +126,28 @@ export const skillsAPI = {
     }).then(handleRes),
 };
 
+// ── Skill Categories ──────────────────────────────────
+export const skillCategoriesAPI = {
+  getAll: () => fetch(`${API_BASE}/skill-categories`, { headers: headers() }).then(handleRes),
+  add: (name) =>
+    fetch(`${API_BASE}/skill-categories`, {
+      method: 'POST',
+      headers: headers(true),
+      body: JSON.stringify({ name }),
+    }).then(handleRes),
+  reorder: (items) =>
+    fetch(`${API_BASE}/skill-categories/reorder`, {
+      method: 'PUT',
+      headers: headers(true),
+      body: JSON.stringify({ items }),
+    }).then(handleRes),
+  delete: (id) =>
+    fetch(`${API_BASE}/skill-categories/${id}`, {
+      method: 'DELETE',
+      headers: headers(true),
+    }).then(handleRes),
+};
+
 // ── Messages ──────────────────────────────────────────
 export const messagesAPI = {
   send: (data) =>
