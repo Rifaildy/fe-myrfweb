@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { projectsAPI, skillsAPI, messagesAPI, profileAPI, skillCategoriesAPI } from '../services/api';
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
+const Sidebar = ({ activeTab, setActiveTab, onLogout, isOpen, onClose }) => {
   const tabs = [
     { id: 'overview', icon: '📊', label: 'Overview' },
     { id: 'profile', icon: '👤', label: 'Profile' },
@@ -13,20 +13,13 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
     { id: 'messages', icon: '💬', label: 'Messages' },
   ];
 
+  const handleTabClick = (id) => {
+    setActiveTab(id);
+    if (onClose) onClose(); // close drawer on mobile when tab selected
+  };
+
   return (
-    <aside style={{
-      width: 240,
-      minHeight: '100vh',
-      background: 'rgba(7,13,31,0.95)',
-      backdropFilter: 'blur(20px)',
-      borderRight: '1px solid rgba(59,130,246,0.12)',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '1.5rem 0',
-      position: 'sticky',
-      top: 0,
-      flexShrink: 0,
-    }}>
+    <aside className={`admin-sidebar${isOpen ? ' open' : ''}`}>
       {/* Logo */}
       <div style={{ padding: '0 1.5rem 1.5rem', borderBottom: '1px solid rgba(59,130,246,0.1)' }}>
         <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -50,7 +43,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
         {tabs.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
             data-hover
             style={{
               display: 'flex',
@@ -67,6 +60,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
               fontSize: '0.875rem',
               cursor: 'pointer',
               textAlign: 'left',
+              width: '100%',
               transition: 'all 0.2s ease',
               borderLeft: activeTab === tab.id
                 ? '2px solid var(--blue-main)'
@@ -135,7 +129,7 @@ const OverviewTab = ({ stats }) => (
     <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
       Selamat datang di admin panel, Rifaildy 👋
     </p>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+    <div className="admin-stat-grid">
       <StatBox value={stats.projects} label="Total Projects" icon="🚀" color="#3b82f6" />
       <StatBox value={stats.published} label="Published" icon="✅" color="#10b981" />
       <StatBox value={stats.skills} label="Skills Listed" icon="🛠" color="#a78bfa" />
@@ -200,7 +194,7 @@ const ProfileTab = () => {
       <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>
         Kelola informasi pribadi yang tampil di website publik.
       </p>
-      <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', maxWidth: 800 }}>
+      <form onSubmit={handleSave} className="admin-profile-grid">
         {fields.map(field => (
           <div key={field.key} style={{ gridColumn: field.type === 'textarea' ? '1 / -1' : 'auto' }}>
             <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontFamily: 'var(--font-mono)' }}>
@@ -424,14 +418,14 @@ const ProjectsTab = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+      <div className="admin-tab-header">
         <div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.25rem' }}>Projects Management</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
             Kelola proyek — seret <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--blue-light)' }}>⠿</span> untuk mengatur urutan
           </p>
         </div>
-        <button onClick={() => openForm()} className="btn-primary" data-hover>
+        <button onClick={() => openForm()} className="btn-primary" data-hover style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
           <span>+ New Project</span>
         </button>
       </div>
@@ -1020,7 +1014,7 @@ const SkillsTab = () => {
   return (
     <div>
       {/* ── Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+      <div className="admin-tab-header">
         <div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.25rem' }}>Skills Manager</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
@@ -1032,11 +1026,11 @@ const SkillsTab = () => {
           data-hover
           style={{
             display: 'flex', alignItems: 'center', gap: '0.4rem',
-            padding: '0.5rem 1rem',
+            padding: '0.5rem 1rem', flexShrink: 0,
             background: catPanelOpen ? 'rgba(167,139,250,0.15)' : 'rgba(167,139,250,0.08)',
             border: `1px solid ${catPanelOpen ? 'rgba(167,139,250,0.4)' : 'rgba(167,139,250,0.2)'}`,
             borderRadius: 8, color: '#a78bfa', fontSize: '0.82rem',
-            cursor: 'pointer', transition: 'all 0.2s',
+            cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap',
           }}
         >
           🗂 Kelola Kategori {catPanelOpen ? '▲' : '▼'}
@@ -1221,7 +1215,7 @@ const SkillsTab = () => {
       <div style={{ background: 'rgba(13,26,51,0.6)', border: '1px solid rgba(59,130,246,0.12)', borderRadius: 'var(--radius-md)', padding: '1.5rem', marginBottom: '2rem' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-secondary)' }}>Add New Skill</h3>
         {msg && <div style={{ marginBottom: '1rem', padding: '0.6rem 1rem', background: msg.startsWith('✅') ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', borderRadius: 8, color: msg.startsWith('✅') ? '#34d399' : '#f87171', fontSize: '0.875rem' }}>{msg}</div>}
-        <form onSubmit={handleAddSkill} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <form onSubmit={handleAddSkill} className="admin-skills-form" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 150px' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem', fontFamily: 'var(--font-mono)' }}>NAME</label>
             <input type="text" className="input-field" placeholder="e.g. Vue.js" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
@@ -1395,9 +1389,9 @@ const MessagesTab = ({ onUnreadCount }) => {
       {loading ? (
         <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '3rem' }}>Loading messages...</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+        <div className="admin-messages-layout" style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '1rem' }}>
           {/* List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div className="admin-messages-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {messages.length === 0 && <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '3rem' }}>No messages yet.</div>}
             {messages.map(m => (
               <div
@@ -1474,6 +1468,7 @@ const MessagesTab = ({ onUnreadCount }) => {
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({ projects: 0, published: 0, skills: 0, unread: 0 });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -1493,28 +1488,65 @@ const AdminDashboard = () => {
     });
   }, []);
 
+  // Close sidebar when tab changes or Escape is pressed
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') setSidebarOpen(false); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/admin-login');
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg-deepest)',
-      display: 'flex',
-    }}>
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+    <div className="admin-layout">
+      {/* ── Mobile top bar ── */}
+      <div className="admin-mobile-topbar">
+        <button
+          className={`admin-hamburger${sidebarOpen ? ' open' : ''}`}
+          onClick={() => setSidebarOpen(o => !o)}
+          aria-label="Toggle sidebar menu"
+          aria-expanded={sidebarOpen}
+        >
+          <span /><span /><span />
+        </button>
+        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{
+            width: 28, height: 28,
+            background: 'linear-gradient(135deg, #2563eb, #06b6d4)',
+            borderRadius: 7,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.75rem', color: 'white',
+          }}>RF</div>
+          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>Admin Panel</span>
+        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          <span className="status-dot online" />
+          <span>{user?.username || 'Admin'}</span>
+        </div>
+      </div>
+
+      {/* ── Sidebar drawer overlay (mobile) ── */}
+      <div
+        className={`admin-overlay${sidebarOpen ? ' visible' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onLogout={handleLogout}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main content */}
-      <main style={{
-        flex: 1,
-        padding: '2rem 2.5rem',
-        overflowY: 'auto',
-        minWidth: 0,
-      }}>
-        {/* Header bar */}
-        <div style={{
+      <main className="admin-main">
+        {/* Header bar (desktop) */}
+        <div className="admin-header-bar" style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
