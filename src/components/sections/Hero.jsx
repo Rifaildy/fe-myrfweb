@@ -199,7 +199,11 @@ const Hero = () => {
               backgroundClip: 'text',
               display: 'block',
             }}>
-              {profile?.full_name || 'Rifaildy Nurhuda Assalam'}
+              {profile ? profile.full_name.split(' ')[0] : 'Rifaildy'}
+            </span>
+            <br />
+            <span style={{ color: 'var(--text-primary)' }}>
+              {profile ? profile.full_name.split(' ').slice(1).join(' ') : 'Nurhuda Assalam'}
             </span>
           </h1>
 
