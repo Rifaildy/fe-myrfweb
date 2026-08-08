@@ -5,8 +5,6 @@ const ROLES = [
   'System Analyst',
   'Full-Stack Developer',
   'UI/UX Enthusiast',
-  'Problem Solver',
-  'Tech Explorer',
 ];
 
 const TypingText = ({ texts }) => {
