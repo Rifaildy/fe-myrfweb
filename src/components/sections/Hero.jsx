@@ -96,13 +96,13 @@ const Hero = () => {
     profileAPI.get()
       .then(setProfile)
       .catch(() => setProfile({
-        full_name: 'Rifaildy Nurhuda',
+        full_name: 'Rifaildy Nurhuda Assalam',
         profession: 'System Analyst & Full-Stack Developer',
         bio: 'Passionate developer crafting elegant digital solutions with modern web technologies.',
         github_url: 'https://github.com/rifaildy',
         linkedin_url: 'https://linkedin.com/in/rifaildy',
-        cv_url: '#',
-        email: 'rifaildy@example.com',
+        cv_url: 'https://drive.google.com/file/d/1VzvRdSq0RyszwVKlkOb27FfkZvsSMkSI/view?usp=sharing',
+        email: 'rifaildy.n.a@gmail.com',
       }));
 
     // Parallax on scroll
