@@ -96,12 +96,12 @@ const Hero = () => {
     profileAPI.get()
       .then(setProfile)
       .catch(() => setProfile({
-        full_name: ' Nurhuda Assalam',
+        full_name: 'Rifaildy Nurhuda Assalam',
         profession: 'System Analyst & Full-Stack Developer',
-        bio: 'modern web technologies.',
+        bio: 'Passionate developer crafting elegant digital solutions with modern web technologies.',
         github_url: 'https://github.com/rifaildy',
         linkedin_url: 'https://linkedin.com/in/rifaildy',
-        cv_url: 'https://drive.google.com/file/d/1VzvRdSq0RyszwVKlkO b27FfkZvsSMkSI/view?usp=sharing',
+        cv_url: 'https://drive.google.com/file/d/1VzvRdSq0RyszwVKlkOb27FfkZvsSMkSI/view?usp=sharing',
         email: 'rifaildy.n.a@gmail.com',
       }));
 
@@ -224,7 +224,7 @@ const Hero = () => {
             lineHeight: 1.75,
             marginBottom: '2.5rem',
           }}>
-            {profile?.bio || 'modern web technologies.'}
+            {profile?.bio || 'Passionate developer crafting elegant digital solutions with modern web technologies.'}
           </p>
 
           {/* CTAs */}
