@@ -5,6 +5,8 @@ const ROLES = [
   'System Analyst',
   'Full-Stack Developer',
   'UI/UX Enthusiast',
+  'Problem Solver',
+  'Tech Explorer',
 ];
 
 const TypingText = ({ texts }) => {
@@ -99,7 +101,7 @@ const Hero = () => {
         bio: 'Passionate developer crafting elegant digital solutions with modern web technologies.',
         github_url: 'https://github.com/rifaildy',
         linkedin_url: 'https://linkedin.com/in/rifaildy',
-        cv_url: 'https://drive.google.com/file/d/1VzvRdSq0RyszwVKlkOb27FfkZvsSMkSI/view?usp=sharing',
+        cv_url: '#',
         email: 'rifaildy.n.a@gmail.com',
       }));
 
