@@ -202,7 +202,7 @@ const Hero = () => {
             </span>
             <br />
             <span style={{ color: 'var(--text-primary)' }}>
-              {profile ? profile.full_name.split(' ').slice(1).join(' ') : 'Nurhuda'}
+              {profile ? profile.full_name.split(' ').slice(1).join(' ') : 'Nurhuda Assalam'}
             </span>
           </h1>
 
@@ -220,7 +220,7 @@ const Hero = () => {
           <p className="hero-reveal" style={{
             fontSize: '1.05rem',
             color: 'var(--text-secondary)',
-            maxWidth: 560,
+            maxWidth: 'clamp(400px, 90vw, 650px)',
             lineHeight: 1.75,
             marginBottom: '2.5rem',
           }}>
