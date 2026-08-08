@@ -96,7 +96,7 @@ const Hero = () => {
     profileAPI.get()
       .then(setProfile)
       .catch(() => setProfile({
-        full_name: 'Rifaildy Nurhuda Assalam',
+        full_name: ' Nurhuda Assalam',
         profession: 'System Analyst & Full-Stack Developer',
         bio: 'modern web technologies.',
         github_url: 'https://github.com/rifaildy',
