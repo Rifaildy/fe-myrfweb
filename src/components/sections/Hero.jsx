@@ -101,7 +101,7 @@ const Hero = () => {
         bio: 'Passionate developer crafting elegant digital solutions with modern web technologies.',
         github_url: 'https://github.com/rifaildy',
         linkedin_url: 'https://linkedin.com/in/rifaildy',
-        cv_url: '#',
+        cv_url: 'https://drive.google.com/file/d/1VzvRdSq0RyszwVKlkOb27FfkZvsSMkSI/view?usp=sharing',
         email: 'rifaildy.n.a@gmail.com',
       }));
 
