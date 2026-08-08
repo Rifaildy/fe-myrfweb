@@ -360,11 +360,11 @@ const Contact = () => {
               boxShadow: '0 0 12px rgba(59,130,246,0.4)',
             }}>RF</div>
             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              Rifaildy Nurhuda
+              Rifaildy Nurhuda Assalam
             </span>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}>
-            © {new Date().getFullYear()} Built with ❤️ using React + Express + Supabase
+            © {new Date().getFullYear()}
           </p>
         </div>
       </div>
