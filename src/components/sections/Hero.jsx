@@ -197,13 +197,12 @@ const Hero = () => {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              display: 'block',
             }}>
               {profile ? profile.full_name.split(' ')[0] : 'Rifaildy'}
             </span>
             <br />
             <span style={{ color: 'var(--text-primary)' }}>
-              {profile ? profile.full_name.split(' ').slice(1).join(' ') : 'Nurhuda Assalam'}
+              {profile ? profile.full_name.split(' ').slice(1).join(' ') : 'Nurhuda'}
             </span>
           </h1>
 
@@ -221,7 +220,7 @@ const Hero = () => {
           <p className="hero-reveal" style={{
             fontSize: '1.05rem',
             color: 'var(--text-secondary)',
-            maxWidth: 'clamp(400px, 90vw, 650px)',
+            maxWidth: 560,
             lineHeight: 1.75,
             marginBottom: '2.5rem',
           }}>
