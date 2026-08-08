@@ -98,7 +98,7 @@ const Hero = () => {
       .catch(() => setProfile({
         full_name: 'Rifaildy Nurhuda Assalam',
         profession: 'System Analyst & Full-Stack Developer',
-        bio: 'Passionate developer crafting elegant digital solutions with modern web technologies.',
+        bio: 'modern web technologies.',
         github_url: 'https://github.com/rifaildy',
         linkedin_url: 'https://linkedin.com/in/rifaildy',
         cv_url: 'https://drive.google.com/file/d/1VzvRdSq0RyszwVKlkO b27FfkZvsSMkSI/view?usp=sharing',
@@ -224,7 +224,7 @@ const Hero = () => {
             lineHeight: 1.75,
             marginBottom: '2.5rem',
           }}>
-            {profile?.bio || 'Passionate developer crafting elegant digital solutions with modern web technologies.'}
+            {profile?.bio || 'modern web technologies.'}
           </p>
 
           {/* CTAs */}
