@@ -19,63 +19,74 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, isOpen, onClose }) => {
   };
 
   return (
-    <aside className={`admin-sidebar${isOpen ? ' open' : ''}`}>
-      {/* Logo */}
-      <div style={{ padding: '0 1.5rem 1.5rem', borderBottom: '1px solid rgba(59,130,246,0.1)' }}>
-        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <div style={{
-            width: 34, height: 34,
-            background: 'linear-gradient(135deg, #2563eb, #06b6d4)',
-            borderRadius: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.85rem', color: 'white',
-            boxShadow: '0 0 14px rgba(59,130,246,0.4)',
-          }}>RF</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Admin Panel</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>MyRFWeb CMS</div>
-          </div>
-        </Link>
+    <aside 
+      className={`admin-sidebar${isOpen ? ' open' : ''}`}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        height: '100%',
+        minHeight: '100vh',
+      }}
+    >
+      <div>
+        {/* Logo */}
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(59,130,246,0.1)' }}>
+          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{
+              width: 34, height: 34,
+              background: 'linear-gradient(135deg, #2563eb, #06b6d4)',
+              borderRadius: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.85rem', color: 'white',
+              boxShadow: '0 0 14px rgba(59,130,246,0.4)',
+            }}>RF</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Admin Panel</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>MyRFWeb CMS</div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Nav items */}
+        <nav style={{ padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              data-hover
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.65rem 0.9rem',
+                borderRadius: 9,
+                border: 'none',
+                background: activeTab === tab.id
+                  ? 'linear-gradient(135deg, rgba(37,99,235,0.25), rgba(6,182,212,0.15))'
+                  : 'transparent',
+                color: activeTab === tab.id ? 'var(--blue-light)' : 'var(--text-secondary)',
+                fontWeight: activeTab === tab.id ? 600 : 400,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                textAlign: 'left',
+                width: '100%',
+                transition: 'all 0.2s ease',
+                borderLeft: activeTab === tab.id
+                  ? '2px solid var(--blue-main)'
+                  : '2px solid transparent',
+              }}
+              onMouseEnter={e => { if (activeTab !== tab.id) e.currentTarget.style.background = 'rgba(59,130,246,0.07)'; }}
+              onMouseLeave={e => { if (activeTab !== tab.id) e.currentTarget.style.background = 'transparent'; }}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
 
-      {/* Nav items */}
-      <nav style={{ flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabClick(tab.id)}
-            data-hover
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.65rem 0.9rem',
-              borderRadius: 9,
-              border: 'none',
-              background: activeTab === tab.id
-                ? 'linear-gradient(135deg, rgba(37,99,235,0.25), rgba(6,182,212,0.15))'
-                : 'transparent',
-              color: activeTab === tab.id ? 'var(--blue-light)' : 'var(--text-secondary)',
-              fontWeight: activeTab === tab.id ? 600 : 400,
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              textAlign: 'left',
-              width: '100%',
-              transition: 'all 0.2s ease',
-              borderLeft: activeTab === tab.id
-                ? '2px solid var(--blue-main)'
-                : '2px solid transparent',
-            }}
-            onMouseEnter={e => { if (activeTab !== tab.id) e.currentTarget.style.background = 'rgba(59,130,246,0.07)'; }}
-            onMouseLeave={e => { if (activeTab !== tab.id) e.currentTarget.style.background = 'transparent'; }}
-          >
-            <span>{tab.icon}</span>
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      {/* Logout */}
+      {/* Logout - Berada di paling bawah mengikuti tinggi sidebar */}
       <div style={{ padding: '1rem 0.75rem', borderTop: '1px solid rgba(59,130,246,0.1)' }}>
         <button
           onClick={onLogout}
