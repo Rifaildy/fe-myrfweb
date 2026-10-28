@@ -500,12 +500,12 @@ textarea.input-field {
   min-height: 100vh;
   background: var(--bg-deepest);
   display: flex;
+  align-items: stretch; /* Memastikan sidebar otomatis ikut memanjang menyesuaikan tinggi konten utama */
 }
 
 /* ── Sidebar ── */
 .admin-sidebar {
   width: 240px;
-  min-height: 100vh;
   background: rgba(7,13,31,0.97);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -513,9 +513,6 @@ textarea.input-field {
   display: flex;
   flex-direction: column;
   padding: 1.5rem 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
   flex-shrink: 0;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
   z-index: 200;
