@@ -549,16 +549,6 @@ const ProjectsTab = () => {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
                   <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>DETAIL IMAGES ({detailImages.length})</label>
-                  <button
-                    type="button"
-                    onClick={addImageRow}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.3rem',
-                      padding: '0.3rem 0.75rem', background: 'rgba(59,130,246,0.1)',
-                      border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6,
-                      color: 'var(--blue-light)', fontSize: '0.78rem', cursor: 'pointer',
-                    }}
-                  >+ Tambah Gambar</button>
                 </div>
 
                 {detailImages.length === 0 && (
@@ -694,10 +684,22 @@ const ProjectsTab = () => {
               </div>
 
               {/* Published checkbox */}
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                <input type="checkbox" checked={form.is_published} onChange={e => setForm(p => ({ ...p, is_published: e.target.checked }))} />
-                Published (visible on portfolio)
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  <input type="checkbox" checked={form.is_published} onChange={e => setForm(p => ({ ...p, is_published: e.target.checked }))} />
+                  Published (visible on portfolio)
+                </label>
+                <button
+                    type="button"
+                    onClick={addImageRow}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.3rem',
+                      padding: '0.3rem 0.75rem', background: 'rgba(59,130,246,0.1)',
+                      border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6,
+                      color: 'var(--blue-light)', fontSize: '0.78rem', cursor: 'pointer',
+                    }}
+                  >+ Tambah Gambar</button>
+              </div>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                 <button type="submit" disabled={saving} className="btn-primary" data-hover><span>{saving ? '⏳ Saving...' : '💾 Save'}</span></button>
                 <button type="button" onClick={() => setShowForm(false)} className="btn-outline" data-hover>Cancel</button>
