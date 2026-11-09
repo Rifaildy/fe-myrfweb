@@ -409,7 +409,7 @@ const ProjectDetail = () => {
                   fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.12em', color: '#a78bfa',
                   fontFamily: 'var(--font-mono)',
-                }}>Gallery — {images.length} Screenshot{images.length > 1 ? 's' : ''}</h2>
+                }}>Gallery Detail Project - {images.length} </h2>
               </div>
 
               {images.map((url, i) => (
